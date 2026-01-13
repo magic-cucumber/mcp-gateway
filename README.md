@@ -10,7 +10,7 @@ mcp-gateway is a Model Context Protocol (MCP) gateway server that helps AI model
 ## Installation
 
 ```bash
-npm install -g mcp-gateway
+npm install -g @kagg886/mcp-gateway
 ```
 
 ## Configuration
