@@ -1,0 +1,38 @@
+{
+  "name": "mcp-gateway",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/main.js",
+  "bin": {
+    "mcp-gateway": "dist/main.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "scripts": {
+    "build:production": "NODE_ENV=production node build.js",
+    "build:debug": "NODE_ENV=development node build.js",
+    "local": "NODE_ENV=development node build.js && npm link --force",
+    "dev": "node build.js --watch && NODE_ENV=development npx @modelcontextprotocol/inspector node dist/main.js -f mcpConfig.example.json",
+    "prepublishOnly": "npm run build:production"
+  },
+  "keywords": [],
+  "author": "886kagg",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/lodash.merge": "^4.6.9",
+    "@types/node": "^25.0.6",
+    "@types/yargs": "^17.0.35",
+    "cross-env": "^10.1.0",
+    "esbuild": "^0.27.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.2",
+    "ajv": "^8.17.1",
+    "lodash.merge": "^4.6.2",
+    "yargs": "^18.0.0",
+    "zod": "^4.3.5"
+  }
+}
