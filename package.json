@@ -1,7 +1,7 @@
 {
   "name": "@kagg886/mcp-gateway",
-  "version": "1.0.0",
-  "description": "",
+  "version": "1.0",
+  "description": "an gateway to manage tools, keeping context clean and focused.",
   "main": "dist/main.js",
   "bin": {
     "mcp-gateway": "dist/main.js"
