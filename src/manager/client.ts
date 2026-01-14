@@ -20,7 +20,7 @@ export type Context = {
 
 export type ProxyClient = {
     get: (key: string) => Promise<Context | undefined>
-    keys: () => Array<string>
+    keys: () => string[]
     close: () => void
 }
 export const createProxyClient = async (mcp_config: MCPServersConfiguration): Promise<ProxyClient> => {

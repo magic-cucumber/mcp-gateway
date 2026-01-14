@@ -43,10 +43,10 @@ async function main() {
         callback(async () => {
             //TODO configuration cache.
             const tools = await Promise.all(clients.keys().map(it => clients.get(it)))
-            return wrapped([...tools.filter(it => it !== undefined)].map(it => ({
+            return wrapped(tools.filter(it => it !== undefined).map(it => ({
                 name: it.config.name,
                 description: limit(it.config.description),
-                tools: [...it.config.tools.values()].map(it => ({
+                tools: it.config.tools.map(it => ({
                     name: it.name,
                     description: limit(it.description ?? ''),
                 }))
@@ -74,7 +74,7 @@ async function main() {
             if (available.length === 0) {
                 return wrapped({
                     error: `MCP server [${query.map(it => it.name).join(", ")}] all not found.`,
-                    available: [...keys]
+                    available: clients.keys()
                 })
             }
             const available_client_arr = await Promise.all(
@@ -90,7 +90,7 @@ async function main() {
                     if (tools.length === 0) {
                         return {
                             error: `tools [${tool_names.join(", ")}] all not found.`,
-                            available: [...client.config.tools.keys()]
+                            available: client.tools.keys()
                         }
                     }
 
