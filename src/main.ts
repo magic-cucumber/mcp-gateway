@@ -11,7 +11,7 @@ import {limit} from "./util/string.js";
 async function main() {
     console.error('Initializing All MCP server...')
     const clients = await createProxyClient(config)
-    console.error(`${clients.context.size} MCP server was initialized.`)
+    console.error(`${clients.keys().length} MCP server was initialized.`)
 
     const server = new McpServer({
         name: 'mcp-proxy-gateway',
@@ -29,7 +29,9 @@ async function main() {
         
         STRICT REQUIREMENT: Never attempt 'mcp-server-tool-execute' based on guesswork or from the output of 'mcp-servers-all' alone. The pipeline 1->2->3 is atomic and non-negotiable.`,
     }, {
-        capabilities: clients.capabilities
+        capabilities: {
+            tools: {}
+        }
     });
 
     server.registerTool(
@@ -38,14 +40,18 @@ async function main() {
             description: 'Retrieve a summary of all available MCP servers and their tools. This provides an overview to help you identify which servers contain the functionality you need.',
             inputSchema: z.object({})
         },
-        callback(async () => wrapped([...clients.context.values()].map(it => ({
-            name: it.name,
-            description: limit(it.description),
-            tools: [...it.tools.values()].map(it => ({
-                name: it.name,
-                description: limit(it.description ?? ''),
-            }))
-        }))))
+        callback(async () => {
+            //TODO configuration cache.
+            const tools = await Promise.all(clients.keys().map(it => clients.get(it)))
+            return wrapped([...tools.filter(it => it !== undefined)].map(it => ({
+                name: it.config.name,
+                description: limit(it.config.description),
+                tools: [...it.config.tools.values()].map(it => ({
+                    name: it.name,
+                    description: limit(it.description ?? ''),
+                }))
+            })))
+        })
     )
 
     server.registerTool(
@@ -63,35 +69,41 @@ async function main() {
             })
         },
         callback(async ({query}) => {
-            const available = query.filter(q => clients.context.has(q.name));
+            const keys = new Set(...clients.keys())
+            const available = query.filter(q => keys.has(q.name));
             if (available.length === 0) {
                 return wrapped({
                     error: `MCP server [${query.map(it => it.name).join(", ")}] all not found.`,
-                    available: [...clients.context.keys()]
+                    available: [...keys]
                 })
             }
+            const available_client_arr = await Promise.all(
+                available.map(it => clients.get(it.name))
+            )
+
+            const client_map = new Map(available_client_arr.filter(it => it !== undefined).map(it => [it.config.name, it]))
             return wrapped({
                 data: available.map(({name, tool_names}) => {
-                    const client = clients.context.get(name)!
+                    const client = client_map.get(name)!
                     const tools = tool_names.map(it => client.tools.get(it)).filter(it => it !== undefined)
 
                     if (tools.length === 0) {
                         return {
                             error: `tools [${tool_names.join(", ")}] all not found.`,
-                            available: [...client.tools.keys()]
+                            available: [...client.config.tools.keys()]
                         }
                     }
 
                     return {
-                        name: client.name,
-                        description: client.description,
+                        name: client.config.name,
+                        description: client.config.description,
                         tools: {
                             data: tools,
                             not_found: tool_names.filter(it => !client.tools.has(it))
                         }
                     }
                 }),
-                not_found: query.filter(it => !clients.context.has(it.name)).map(it => it.name)
+                not_found: query.filter(it => !keys.has(it.name)).map(it => it.name)
             })
         })
     )
@@ -107,11 +119,11 @@ async function main() {
             })
         },
         callback(async ({name, tool_name, args}) => {
-            const context = clients.context.get(name)
+            const context = await clients.get(name)
             if (context === undefined) {
                 return wrapped({
-                    error: 'MCP server not found.',
-                    available: [...clients.context.keys()]
+                    error: 'MCP server not found or initialize failure.',
+                    available: clients.keys()
                 })
             }
 
@@ -119,7 +131,7 @@ async function main() {
             if (tool === undefined) {
                 return wrapped({
                     error: 'Tool not found on the specified server.',
-                    available: [...context.tools.keys()]
+                    available: context.config.tools
                 })
             }
 
